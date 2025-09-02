@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Health Monitoring Dashboard</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 20px 40px;
+      text-align: center;
+      width: 300px;
+      margin-bottom: 20px;
+    }
+    h2 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .metric {
+      margin: 10px 0;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .pulse {
+      color: #e63946;
+    }
+    .spo2 {
+      color: #1d3557;
+    }
+    canvas {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Portable Health Monitoring Kit</h2>
+    <div class="metric pulse">Pulse: <span id="pulse">--</span> bpm</div>
+    <div class="metric spo2">SpO₂: <span id="spo2">--</span> %</div>
+  </div>
+
+  <canvas id="healthChart" width="600" height="300"></canvas>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD132dM_3yyiUm8Ihz9NYh_2KOE1uT92js",
+      authDomain: "portable-health-monitoring-kit.firebaseapp.com",
+      databaseURL: "https://portable-health-monitoring-kit-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "portable-health-monitoring-kit",
+      storageBucket: "portable-health-monitoring-kit.appspot.com",
+      messagingSenderId: "423556184685",
+      appId: "1:423556184685:web:15d865156b49a4cae75d64",
+      measurementId: "G-TNG2MWTGYY"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const ctx = document.getElementById('healthChart').getContext('2d');
+    const healthChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Pulse (bpm)',
+            data: [],
+            borderColor: '#e63946',
+            backgroundColor: 'rgba(230,57,70,0.1)',
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'SpO₂ (%)',
+            data: [],
+            borderColor: '#1d3557',
+            backgroundColor: 'rgba(29,53,87,0.1)',
+            fill: true,
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { beginAtZero: false }
+        }
+      }
+    });
+
+    const healthRef = db.ref("health");
+    healthRef.on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        document.getElementById("pulse").innerText = data.pulse;
+        document.getElementById("spo2").innerText = data.spo2;
+
+        const time = new Date().toLocaleTimeString();
+        healthChart.data.labels.push(time);
+        healthChart.data.datasets[0].data.push(data.pulse);
+        healthChart.data.datasets[1].data.push(data.spo2);
+
+        if (healthChart.data.labels.length > 10) {
+          healthChart.data.labels.shift();
+          healthChart.data.datasets[0].data.shift();
+          healthChart.data.datasets[1].data.shift();
+        }
+
+        healthChart.update();
+      }
+    });
+  </script>
+</body>
+</html>
